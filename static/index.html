@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="fantasy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fashion Buddy</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.0/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="container mx-auto p-4">
+        <h1 class="text-4xl font-bold text-center mb-8">Fashion Buddy</h1>
+        
+        <div class="flex flex-col items-center">
+            <input type="file" id="imageUpload" accept="image/*" class="file-input file-input-bordered file-input-primary w-full max-w-xs mb-4" />
+            <select id="categorySelect" class="select select-bordered w-full max-w-xs mb-4">
+                <option disabled selected>Select a category</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Accessories">Accessories</option>
+            </select>
+            <button id="uploadButton" class="btn btn-primary">Upload Image</button>
+        </div>
+
+        <div id="results" class="mt-8 hidden">
+            <h2 class="text-2xl font-semibold mb-4">Results</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="text-xl font-semibold mb-2">Uploaded Image</h3>
+                    <img id="uploadedImage" class="w-full object-contain rounded-lg shadow-lg" style="max-height: 400px;" />
+                    <div id="imageDescription" class="mt-2 p-4 bg-base-200 rounded-lg"></div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold mb-2">Similar Images</h3>
+                    <div id="similarImages" class="grid grid-cols-2 gap-2"></div>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-2">Fashion Analysis</h3>
+                <div id="analysis" class="p-4 bg-base-200 rounded-lg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadButton = document.getElementById('uploadButton');
+        const imageUpload = document.getElementById('imageUpload');
+        const categorySelect = document.getElementById('categorySelect');
+        const results = document.getElementById('results');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const imageDescription = document.getElementById('imageDescription');
+        const similarImages = document.getElementById('similarImages');
+        const analysis = document.getElementById('analysis');
+
+        uploadButton.addEventListener('click', async () => {
+            const file = imageUpload.files[0];
+            const category = categorySelect.value;
+            if (!file || category === "Select a category") return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('category', category);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            uploadedImage.src = data.uploaded_image;
+            imageDescription.textContent = data.image_description;
+
+            similarImages.innerHTML = '';
+            data.similar_images.forEach(image => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'relative';
+                
+                const img = document.createElement('img');
+                img.src = `/images/${image.category}/${image.filename}`;
+                img.className = 'w-full object-contain rounded shadow';
+                img.style.maxHeight = '200px';
+                
+                const filename = document.createElement('p');
+                filename.textContent = `${image.filename} (${image.category})`;
+                filename.className = 'text-xs mt-1 text-center';
+                
+                imgContainer.appendChild(img);
+                imgContainer.appendChild(filename);
+                similarImages.appendChild(imgContainer);
+            });
+
+            // Convert markdown to HTML and set it as innerHTML
+            analysis.innerHTML = marked.parse(data.analysis);
+            results.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
